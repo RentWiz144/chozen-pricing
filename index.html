@@ -179,6 +179,11 @@
     <h2>Saved Products</h2>
     <div class="products" id="products"></div>
     <p class="note">Click a product to load its mockups and numbers. Saved on this device only.</p>
+    <div class="actions">
+      <button class="btn ghost" id="exportBtn">⬇ Back up products</button>
+      <button class="btn ghost" id="importBtn">⬆ Restore backup</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+    </div>
   </div>
 
   <div class="card">
@@ -250,6 +255,7 @@
 
 <script>
   const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"']/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch]));
   const money = n => "$" + (isFinite(n) ? n.toFixed(2) : "0.00");
   const num = id => parseFloat($(id).value) || 0;
   const MARKUPS = [1.5, 2, 2.5, 3, 4];
@@ -395,7 +401,7 @@
     $("products").innerHTML = list.length ? list.map((p, i) => `
       <div class="prod" onclick="loadProd(${i})">
         ${p.images && p.images[0] ? `<img src="${p.images[0]}">` : `<img src="chozen-emblem.png">`}
-        <div><b>${p.name || "Untitled"}</b><small>cost ${money(p.cost)} · price ${p.price ? money(p.price) : "—"}</small></div>
+        <div><b>${esc(p.name || "Untitled")}</b><small>cost ${money(p.cost)} · price ${p.price ? money(p.price) : "—"}</small></div>
         <button class="del" onclick="event.stopPropagation(); delProd(${i})" title="Delete">🗑</button>
       </div>`).join("")
       : `<span class="empty">No saved products yet. Fill in the form above and press "Save product".</span>`;
@@ -434,6 +440,42 @@
     $("feePct").value = 3;
     images = []; renderThumbs(); calc();
   };
+
+  // ---- Backup / restore (guards against iOS clearing app storage) ----
+  $("exportBtn").onclick = async () => {
+    const list = await load();
+    if (!list.length) { alert("Nothing to back up yet."); return; }
+    const blob = new Blob([JSON.stringify({ app: "chozen-pricing", exportedAt: new Date().toISOString(), products: list })], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "chozen-pricing-backup-" + new Date().toISOString().slice(0, 10) + ".json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+  $("importBtn").onclick = () => $("importFile").click();
+  $("importFile").onchange = async e => {
+    const f = e.target.files[0]; e.target.value = "";
+    if (!f) return;
+    try {
+      const data = JSON.parse(await f.text());
+      const incoming = Array.isArray(data) ? data : data.products;
+      if (!Array.isArray(incoming) || !incoming.length) throw new Error("empty");
+      const list = await load();
+      let added = 0, updated = 0;
+      for (const p of incoming) {
+        if (!p || typeof p.name !== "string" || !p.name.trim()) continue;
+        const i = list.findIndex(x => x.name.toLowerCase() === p.name.toLowerCase());
+        if (i >= 0) { list[i] = p; updated++; } else { list.push(p); added++; }
+      }
+      await store(list);
+      renderProducts();
+      alert(`Restored: ${added} added, ${updated} updated.`);
+    } catch {
+      alert("That file doesn't look like a ChoZen Pricing backup.");
+    }
+  };
+
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 
   document.querySelectorAll("input[type=number]").forEach(i => i.addEventListener("input", calc));
   migrate().then(renderProducts); calc();
