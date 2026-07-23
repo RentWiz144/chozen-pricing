@@ -200,6 +200,10 @@
         <label>Shipping to customer <span class="hint">(per order)</span></label>
         <div class="money"><span>$</span><input type="number" id="shipOut" min="0" step="0.01" placeholder="0.00"></div>
       </div>
+      <div class="field">
+        <label>Payment fees <span class="hint">(Shopify/card % of each sale)</span></label>
+        <div class="money"><span>%</span><input type="number" id="feePct" min="0" step="0.1" value="3"></div>
+      </div>
     </div>
     <div class="total"><span>Your true cost per item</span><b id="totalCost">$0.00</b></div>
     <p class="note" id="perItemNote"></p>
@@ -262,14 +266,15 @@
       ? `${money(batch)} order ÷ ${qty} item${qty > 1 ? "s" : ""} = ${money(perItem)} each, + ${money(num("shipOut"))} shipping to customer.`
       : "";
 
+    const feeRate = num("feePct") / 100;
     $("suggestions").innerHTML = MARKUPS.map(m => {
-      const price = cost * m, profit = price - cost;
+      const price = cost * m, profit = price - cost - price * feeRate;
       const margin = price > 0 ? (profit / price * 100) : 0;
       return `<tr><td>${m}× cost</td><td><b>${money(price)}</b></td><td>${money(profit)}</td><td>${margin.toFixed(0)}%</td></tr>`;
     }).join("");
 
     const price = num("myPrice");
-    const profit = price - cost;
+    const profit = price - cost - price * feeRate;
     const margin = price > 0 ? (profit / price * 100) : 0;
     $("profit").textContent = money(profit);
     $("margin").textContent = price > 0 ? margin.toFixed(1) + "%" : "0%";
@@ -290,13 +295,13 @@
     // Break-even: recover the money already spent (batch + freight in).
     // Each sale nets price minus the cost to ship that order out.
     const invest = batch;
-    const perSale = price - num("shipOut");
+    const perSale = price - num("shipOut") - price * feeRate;
     $("beInvest").textContent = money(invest);
     let beCls = "", beMsg = "", beUnits = "—", beLeft = "—";
     if (invest > 0 && price > 0) {
       if (perSale <= 0) {
         beCls = "bad";
-        beMsg = "⚠️ Your price doesn't even cover shipping to the customer. You can never break even at this price.";
+        beMsg = "⚠️ Your price doesn't even cover shipping and fees. You can never break even at this price.";
       } else {
         const n = Math.ceil(invest / perSale);
         beUnits = n + " sales";
@@ -400,6 +405,7 @@
     $("pname").value = p.name || "";
     $("mfg").value = p.mfg || ""; $("shipIn").value = p.shipIn || "";
     $("qty").value = p.qty || ""; $("shipOut").value = p.shipOut || "";
+    $("feePct").value = (p.feePct === 0 || p.feePct) ? p.feePct : 3;
     $("myPrice").value = p.price || "";
     images = (p.images || []).slice();
     renderThumbs(); calc();
@@ -416,7 +422,7 @@
     const cost = (num("mfg") + num("shipIn")) / qty + num("shipOut");
     const list = await load();
     const entry = { name, images: images.slice(), mfg: num("mfg"), shipIn: num("shipIn"),
-      qty, shipOut: num("shipOut"), price: num("myPrice"), cost };
+      qty, shipOut: num("shipOut"), feePct: num("feePct"), price: num("myPrice"), cost };
     const existing = list.findIndex(p => p.name.toLowerCase() === name.toLowerCase());
     if (existing >= 0) list[existing] = entry; else list.push(entry);
     try { await store(list); } catch { alert("Could not save. Try fewer mockup images for this product."); return; }
@@ -425,6 +431,7 @@
   };
   $("clear").onclick = () => {
     ["pname","mfg","shipIn","qty","shipOut","myPrice"].forEach(id => $(id).value = "");
+    $("feePct").value = 3;
     images = []; renderThumbs(); calc();
   };
 
