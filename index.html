@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChoZen Pricing Calculator</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ChoZen Pricing">
+<meta name="theme-color" content="#0d4fd6">
+<style>
+  :root {
+    --blue: #2b7fff;
+    --blue-deep: #0d4fd6;
+    --blue-glow: rgba(43,127,255,0.35);
+    --chrome-hi: #ffffff;
+    --chrome-mid: #b9c6d6;
+    --chrome-lo: #7e8fa3;
+    --ink: #101a28;
+    --muted: #5c6c80;
+    --line: rgba(126,143,163,0.35);
+    --glass: rgba(255,255,255,0.62);
+    --good: #0e9d58;
+    --warn: #c98a06;
+    --bad: #d63a2f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 28px 18px 40px;
+    font-family: -apple-system, "SF Pro Display", "Segoe UI", Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    min-height: 100vh;
+    background:
+      radial-gradient(900px 500px at 15% -5%, rgba(43,127,255,0.18), transparent 60%),
+      radial-gradient(800px 500px at 95% 10%, rgba(185,198,214,0.5), transparent 60%),
+      radial-gradient(700px 600px at 50% 110%, rgba(13,79,214,0.14), transparent 60%),
+      linear-gradient(165deg, #f6f9fd, #e9eff8 55%, #f2f6fb);
+    background-attachment: fixed;
+  }
+  .wrap { max-width: 780px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 26px; }
+  .mark {
+    width: 76px; height: 76px; border-radius: 20px; margin-bottom: 10px;
+    object-fit: cover; box-shadow: 0 8px 24px var(--blue-glow);
+  }
+  header h1 {
+    margin: 0; font-size: 30px; font-weight: 800; letter-spacing: 3px;
+    background: linear-gradient(100deg, #94a5ba 0%, #ffffff 22%, #7e8fa3 40%, var(--blue) 62%, #dbe5f1 85%, #94a5ba 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-transform: uppercase;
+  }
+  header p { margin: 6px 0 0; color: var(--muted); font-size: 13px; letter-spacing: 2px; text-transform: uppercase; }
+
+  .card {
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+    border: 1px solid rgba(255,255,255,0.8);
+    outline: 1px solid var(--line);
+    border-radius: 20px; padding: 22px; margin-bottom: 18px;
+    box-shadow: 0 14px 40px rgba(16,42,80,0.10), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .card h2 {
+    margin: 0 0 16px; font-size: 13px; letter-spacing: 2.5px; text-transform: uppercase;
+    color: var(--blue-deep); display: flex; align-items: center; gap: 10px;
+  }
+  .card h2::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--blue-glow), transparent); }
+
+  label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+  .hint { font-weight: 400; color: var(--muted); font-size: 12px; }
+  .field { margin-bottom: 14px; }
+  .money { position: relative; }
+  .money span { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--chrome-lo); font-weight: 600; }
+  input[type=number], input[type=text] {
+    width: 100%; padding: 13px 14px; font-size: 17px; color: var(--ink);
+    border: 1px solid var(--line); border-radius: 12px; outline: none;
+    background: rgba(255,255,255,0.85);
+    transition: box-shadow .15s, border-color .15s;
+  }
+  .money input { padding-left: 30px; }
+  input:focus { border-color: var(--blue); box-shadow: 0 0 0 4px var(--blue-glow); }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .row .field { flex: 1; min-width: 170px; }
+
+  .total {
+    display: flex; justify-content: space-between; align-items: center;
+    background: linear-gradient(100deg, var(--blue-deep), var(--blue) 60%, #6fb0ff);
+    color: #fff; border-radius: 14px; padding: 15px 20px; font-size: 17px;
+    box-shadow: 0 10px 26px var(--blue-glow), inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+  .total b { font-size: 26px; letter-spacing: 0.5px; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 11px 8px; text-align: right; font-size: 15px; border-bottom: 1px solid rgba(126,143,163,0.18); }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; }
+  tr:last-child td { border-bottom: none; }
+
+  .big { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 12px; }
+  .stat {
+    flex: 1; min-width: 140px; text-align: center; padding: 14px 10px;
+    background: linear-gradient(170deg, rgba(255,255,255,0.9), rgba(233,240,249,0.9));
+    border: 1px solid rgba(255,255,255,0.9); outline: 1px solid var(--line);
+    border-radius: 14px; box-shadow: inset 0 1px 0 #fff;
+  }
+  .stat .v { font-size: 25px; font-weight: 800; }
+  .stat .l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-top: 3px; }
+  .good { color: var(--good); } .warn { color: var(--warn); } .bad { color: var(--bad); }
+  .note { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
+
+  /* Mockups */
+  .drop {
+    border: 2px dashed var(--line); border-radius: 14px; padding: 18px;
+    text-align: center; color: var(--muted); cursor: pointer; font-size: 14px;
+    background: rgba(255,255,255,0.5); transition: border-color .15s, background .15s;
+  }
+  .drop.hover, .drop:hover { border-color: var(--blue); background: rgba(43,127,255,0.06); color: var(--blue-deep); }
+  .thumbs { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+  .thumb { position: relative; width: 96px; height: 96px; border-radius: 12px; overflow: hidden;
+    border: 1px solid var(--line); box-shadow: 0 4px 12px rgba(16,42,80,0.12); }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb button {
+    position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border: none;
+    border-radius: 50%; background: rgba(16,26,40,0.65); color: #fff; cursor: pointer; font-size: 12px; line-height: 1;
+  }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+  .btn {
+    border: none; cursor: pointer; font-size: 14px; font-weight: 700; letter-spacing: 0.5px;
+    padding: 12px 20px; border-radius: 12px; color: #fff;
+    background: linear-gradient(100deg, var(--blue-deep), var(--blue));
+    box-shadow: 0 8px 20px var(--blue-glow);
+  }
+  .btn.ghost { background: rgba(255,255,255,0.85); color: var(--blue-deep); border: 1px solid var(--line); box-shadow: none; }
+  .btn:active { transform: translateY(1px); }
+
+  .products { display: flex; gap: 12px; flex-wrap: wrap; }
+  .prod {
+    display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 8px;
+    background: rgba(255,255,255,0.85); border: 1px solid var(--line); border-radius: 12px;
+    cursor: pointer; transition: box-shadow .15s;
+  }
+  .prod:hover { box-shadow: 0 0 0 3px var(--blue-glow); }
+  .prod img { width: 42px; height: 42px; border-radius: 9px; object-fit: cover; background: #e9eff8; }
+  .prod .ph { width: 42px; height: 42px; border-radius: 9px; background: linear-gradient(150deg,#dfe7f1,#b9c6d6); display:flex;align-items:center;justify-content:center;color:#7e8fa3;font-weight:800; }
+  .prod b { font-size: 14px; }
+  .prod small { display: block; color: var(--muted); font-size: 12px; }
+  .prod .del { border: none; background: none; color: var(--chrome-lo); cursor: pointer; font-size: 15px; padding: 4px; }
+  .empty { color: var(--muted); font-size: 13px; }
+
+  footer { text-align: center; color: #8a97a5; font-size: 12px; margin-top: 20px; line-height: 1.7; }
+  footer .verse { color: var(--blue-deep); letter-spacing: 1px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img class="mark" src="chozen-emblem.png" alt="ChoZen emblem">
+    <h1>ChoZen Pricing</h1>
+    <p>The ChoZen Collection · Design in the Spirit</p>
+  </header>
+
+  <div class="card">
+    <h2>Product &amp; Mockups</h2>
+    <div class="field">
+      <label>Product name <span class="hint">(e.g. Unshaken Windbreaker — Blue)</span></label>
+      <input type="text" id="pname" placeholder="Name this product">
+    </div>
+    <div class="drop" id="drop">⇪ Click or drag your mockup images here. They'll show with this product.</div>
+    <input type="file" id="file" accept="image/*" multiple hidden>
+    <div class="thumbs" id="thumbs"></div>
+    <div class="actions">
+      <button class="btn" id="save">Save product</button>
+      <button class="btn ghost" id="clear">New / clear form</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Saved Products</h2>
+    <div class="products" id="products"></div>
+    <p class="note">Click a product to load its mockups and numbers. Saved on this Mac only.</p>
+  </div>
+
+  <div class="card">
+    <h2>1 · Your Costs</h2>
+    <div class="row">
+      <div class="field">
+        <label>Manufacturer total cost <span class="hint">(the whole order / batch)</span></label>
+        <div class="money"><span>$</span><input type="number" id="mfg" min="0" step="0.01" placeholder="0.00"></div>
+      </div>
+      <div class="field">
+        <label>Shipping to you <span class="hint">(freight for the whole order)</span></label>
+        <div class="money"><span>$</span><input type="number" id="shipIn" min="0" step="0.01" placeholder="0.00"></div>
+      </div>
+      <div class="field">
+        <label>Quantity in the order <span class="hint">(how many items)</span></label>
+        <div class="money"><span>#</span><input type="number" id="qty" min="1" step="1" placeholder="1"></div>
+      </div>
+      <div class="field">
+        <label>Shipping to customer <span class="hint">(per order)</span></label>
+        <div class="money"><span>$</span><input type="number" id="shipOut" min="0" step="0.01" placeholder="0.00"></div>
+      </div>
+    </div>
+    <div class="total"><span>Your true cost per item</span><b id="totalCost">$0.00</b></div>
+    <p class="note" id="perItemNote"></p>
+  </div>
+
+  <div class="card">
+    <h2>2 · Suggested Prices</h2>
+    <table>
+      <thead><tr><th>Markup</th><th>Price</th><th>Profit / item</th><th>Margin</th></tr></thead>
+      <tbody id="suggestions"></tbody>
+    </table>
+    <p class="note">Apparel brands usually price at 2×–2.5× cost online and 3×+ at live events.</p>
+  </div>
+
+  <div class="card">
+    <h2>3 · Test Your Own Price</h2>
+    <div class="field">
+      <label>Your selling price</label>
+      <div class="money"><span>$</span><input type="number" id="myPrice" min="0" step="0.01" placeholder="0.00"></div>
+    </div>
+    <div class="big">
+      <div class="stat"><div class="v" id="profit">$0.00</div><div class="l">Profit / item</div></div>
+      <div class="stat"><div class="v" id="margin">0%</div><div class="l">Margin</div></div>
+      <div class="stat"><div class="v" id="units">—</div><div class="l">Sales for $300/day</div></div>
+    </div>
+    <p class="note" id="verdict"></p>
+  </div>
+
+  <footer>
+    <span class="verse">"Ye are a chosen generation, a royal priesthood" — 1 Peter 2:9</span><br>
+    ChoZen Unlimited LLC · everything stays on this Mac, nothing is sent anywhere
+  </footer>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const money = n => "$" + (isFinite(n) ? n.toFixed(2) : "0.00");
+  const num = id => parseFloat($(id).value) || 0;
+  const MARKUPS = [1.5, 2, 2.5, 3, 4];
+  const KEY = "chozen-pricing-products";
+  let images = [];
+
+  function calc() {
+    const qty = Math.max(1, Math.floor(num("qty")) || 1);
+    const batch = num("mfg") + num("shipIn");
+    const perItem = batch / qty;
+    const cost = perItem + num("shipOut");
+    $("totalCost").textContent = money(cost);
+    $("perItemNote").textContent = batch > 0
+      ? `${money(batch)} order ÷ ${qty} item${qty > 1 ? "s" : ""} = ${money(perItem)} each, + ${money(num("shipOut"))} shipping to customer.`
+      : "";
+
+    $("suggestions").innerHTML = MARKUPS.map(m => {
+      const price = cost * m, profit = price - cost;
+      const margin = price > 0 ? (profit / price * 100) : 0;
+      return `<tr><td>${m}× cost</td><td><b>${money(price)}</b></td><td>${money(profit)}</td><td>${margin.toFixed(0)}%</td></tr>`;
+    }).join("");
+
+    const price = num("myPrice");
+    const profit = price - cost;
+    const margin = price > 0 ? (profit / price * 100) : 0;
+    $("profit").textContent = money(profit);
+    $("margin").textContent = price > 0 ? margin.toFixed(1) + "%" : "0%";
+    $("units").textContent = profit > 0 ? Math.ceil(300 / profit) + " / day" : "—";
+
+    let cls = "", msg = "";
+    if (price > 0 && cost > 0) {
+      if (profit <= 0) { cls = "bad"; msg = "⚠️ You'd LOSE money at this price. Price must be above " + money(cost) + "."; }
+      else if (margin < 30) { cls = "warn"; msg = "Thin margin (under 30%). After fees and returns there may be little left."; }
+      else if (margin < 50) { cls = "warn"; msg = "Workable, but aim for 50%+ margin (at least 2× cost)."; }
+      else { cls = "good"; msg = "✓ Healthy margin: real room for fees, discounts, and profit."; }
+    }
+    $("profit").className = "v " + cls;
+    $("margin").className = "v " + cls;
+    $("verdict").textContent = msg;
+    $("verdict").className = "note " + cls;
+  }
+
+  // ---- Mockups ----
+  function addFiles(files) {
+    [...files].forEach(f => {
+      if (!f.type.startsWith("image/")) return;
+      const img = new Image();
+      img.onload = () => {
+        const max = 700, s = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        images.push(c.toDataURL("image/jpeg", 0.82));
+        renderThumbs();
+      };
+      img.src = URL.createObjectURL(f);
+    });
+  }
+  function renderThumbs() {
+    $("thumbs").innerHTML = images.map((src, i) =>
+      `<div class="thumb"><img src="${src}"><button onclick="removeImg(${i})">✕</button></div>`).join("");
+  }
+  window.removeImg = i => { images.splice(i, 1); renderThumbs(); };
+
+  $("drop").onclick = () => $("file").click();
+  $("file").onchange = e => { addFiles(e.target.files); e.target.value = ""; };
+  ["dragover","dragenter"].forEach(ev => $("drop").addEventListener(ev, e => { e.preventDefault(); $("drop").classList.add("hover"); }));
+  ["dragleave","drop"].forEach(ev => $("drop").addEventListener(ev, e => { e.preventDefault(); $("drop").classList.remove("hover"); }));
+  $("drop").addEventListener("drop", e => addFiles(e.dataTransfer.files));
+
+  // ---- Saved products ----
+  const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } };
+  const store = list => localStorage.setItem(KEY, JSON.stringify(list));
+
+  function renderProducts() {
+    const list = load();
+    $("products").innerHTML = list.length ? list.map((p, i) => `
+      <div class="prod" onclick="loadProd(${i})">
+        ${p.images && p.images[0] ? `<img src="${p.images[0]}">` : `<img src="chozen-emblem.png">`}
+        <div><b>${p.name || "Untitled"}</b><small>cost ${money(p.cost)} · price ${p.price ? money(p.price) : "—"}</small></div>
+        <button class="del" onclick="event.stopPropagation(); delProd(${i})" title="Delete">🗑</button>
+      </div>`).join("")
+      : `<span class="empty">No saved products yet. Fill in the form above and press "Save product".</span>`;
+  }
+  window.loadProd = i => {
+    const p = load()[i]; if (!p) return;
+    $("pname").value = p.name || "";
+    $("mfg").value = p.mfg || ""; $("shipIn").value = p.shipIn || "";
+    $("qty").value = p.qty || ""; $("shipOut").value = p.shipOut || "";
+    $("myPrice").value = p.price || "";
+    images = (p.images || []).slice();
+    renderThumbs(); calc();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  window.delProd = i => {
+    if (!confirm("Delete this saved product?")) return;
+    const list = load(); list.splice(i, 1); store(list); renderProducts();
+  };
+  $("save").onclick = () => {
+    const name = $("pname").value.trim();
+    if (!name) { alert("Give the product a name first."); return; }
+    const qty = Math.max(1, Math.floor(num("qty")) || 1);
+    const cost = (num("mfg") + num("shipIn")) / qty + num("shipOut");
+    const list = load();
+    const entry = { name, images: images.slice(), mfg: num("mfg"), shipIn: num("shipIn"),
+      qty, shipOut: num("shipOut"), price: num("myPrice"), cost };
+    const existing = list.findIndex(p => p.name.toLowerCase() === name.toLowerCase());
+    if (existing >= 0) list[existing] = entry; else list.push(entry);
+    try { store(list); } catch { alert("Storage is full. Delete a product or use fewer mockup images."); return; }
+    renderProducts();
+    $("save").textContent = "✓ Saved"; setTimeout(() => $("save").textContent = "Save product", 1200);
+  };
+  $("clear").onclick = () => {
+    ["pname","mfg","shipIn","qty","shipOut","myPrice"].forEach(id => $(id).value = "");
+    images = []; renderThumbs(); calc();
+  };
+
+  document.querySelectorAll("input[type=number]").forEach(i => i.addEventListener("input", calc));
+  renderProducts(); calc();
+</script>
+</body>
+</html>
