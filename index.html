@@ -228,6 +228,16 @@
     <p class="note" id="verdict"></p>
   </div>
 
+  <div class="card">
+    <h2>4 · Break-Even</h2>
+    <div class="big">
+      <div class="stat"><div class="v" id="beInvest">$0.00</div><div class="l">Money you put in</div></div>
+      <div class="stat"><div class="v" id="beUnits">—</div><div class="l">Sales to break even</div></div>
+      <div class="stat"><div class="v" id="beLeft">—</div><div class="l">Pure-profit items left</div></div>
+    </div>
+    <p class="note" id="beNote"></p>
+  </div>
+
   <footer>
     <span class="verse">"Ye are a chosen generation, a royal priesthood" — 1 Peter 2:9</span><br>
     ChoZen Unlimited LLC · everything stays on this device, nothing is sent anywhere
@@ -276,6 +286,37 @@
     $("margin").className = "v " + cls;
     $("verdict").textContent = msg;
     $("verdict").className = "note " + cls;
+
+    // Break-even: recover the money already spent (batch + freight in).
+    // Each sale nets price minus the cost to ship that order out.
+    const invest = batch;
+    const perSale = price - num("shipOut");
+    $("beInvest").textContent = money(invest);
+    let beCls = "", beMsg = "", beUnits = "—", beLeft = "—";
+    if (invest > 0 && price > 0) {
+      if (perSale <= 0) {
+        beCls = "bad";
+        beMsg = "⚠️ Your price doesn't even cover shipping to the customer. You can never break even at this price.";
+      } else {
+        const n = Math.ceil(invest / perSale);
+        beUnits = n + " sales";
+        if (n > qty) {
+          beCls = "bad"; beLeft = "0";
+          beMsg = `⚠️ You'd need ${n} sales to break even, but this batch only has ${qty} items. Even selling out, you'd lose ${money(invest - qty * perSale)}. Raise the price.`;
+        } else {
+          beLeft = (qty - n) + " of " + qty;
+          const pure = (qty - n) * perSale;
+          beCls = "good";
+          beMsg = `✓ Sale #${n} pays back your ${money(invest)}. The ${qty - n} items after that are pure profit: up to ${money(pure)} on this batch.`;
+        }
+      }
+    }
+    $("beUnits").textContent = beUnits;
+    $("beLeft").textContent = beLeft;
+    $("beUnits").className = "v " + beCls;
+    $("beLeft").className = "v " + beCls;
+    $("beNote").textContent = beMsg;
+    $("beNote").className = "note " + beCls;
   }
 
   // ---- Mockups ----
